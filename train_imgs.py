@@ -14,15 +14,15 @@ rst[1][0] = 1.0, rst indicates others
 
 def main():
 
-    train_data, test_data, output_rsts = load_data()
+    training_data, test_data, output_rsts = load_data()
 
 #######################################
 #Training
 #######################################
-    input_layer_size = len(train_data[0][0])
+    input_layer_size = len(training_data[0][0])
     net = NN((input_layer_size, 30, 2), output_rsts)
 
-    net.SGD(train_data, mini_batch_size=10, epochs=30, eta=3.0, test_data=test_data)
+    net.SGD(training_data, mini_batch_size=10, epochs=30, eta=3.0, test_data=test_data)
 
 
 

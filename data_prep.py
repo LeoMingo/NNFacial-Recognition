@@ -11,8 +11,8 @@ def load_data():
 #####################################
 #Making training data and test data
 #####################################
-"""
-###This section has been obsolete and it used to make training data
+    """
+    This section has been obsolete and it used to make training data
     dm = DataManip()
     nnd = NNData()
 
@@ -46,7 +46,7 @@ def load_data():
                                                     (dif_len, 1),
                                                     rst=rst_Others,
                                                      rdm_ratio=1.0)
-"""
+    """
 
     dm = DataManip()
     nnd = NNData()

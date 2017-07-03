@@ -1,21 +1,40 @@
+#Adding L2
+#+weight decay
+#+tanh and ReLU
+#cost and accuracy data accumulator
+
+
 import numpy as np
 
 import random
-import os
+from os import times
+
+class QuadraticCost(object):
+    @staticmethod
+    def cost(a, y):
+        return 0.5*np.linalg.norm(a-y)**2
+    """
+    def cost_prime(self, a, y):
+        return a-y
+    """
+    @staticmethod
+    def delta(a, y, z):
+        (a-y)*sigmoid_prime(z)
 
 class NN(object):
-    def __init__(self, sizes, output_rsts):
+    def __init__(self, sizes, output_rsts, cost=QuadraticCost):
         self.sizes = sizes
         self.layer_num = len(sizes)
         self.biases = [np.random.randn(y,1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y,x)/np.sqrt(x) for y, x in zip(self.sizes[1:], self.sizes[:-1])]
-
+        self.cost = cost
 
         if len(output_rsts) != self.sizes[-1]:
-            print "Warning: The length of output_rsts does not match the size of the last layer"
+            print "Warning: The length of output_rsts   \
+                   does not match the size of the last layer"
         olm_tups = [(idx,rst) for idx in xrange(self.sizes[-1])
                               for rst in output_rsts]
-        self.output_layer_map = dict(olm)
+        self.output_layer_map = dict(olm_tups)
 
 
     def rst_idx_vec(self, rst):
@@ -29,41 +48,57 @@ class NN(object):
 
 
 
-    def SGD(self, train_data, mini_batch_size=1,
-                  epochs=30, eta=1.0,
-                  test_data=None, descending_eta=False):
+    def SGD(self, training_data, mini_batch_size=1,
+                  epochs=30, eta=1.0, lmbda=1.0,
+                  test_data=None, descending_eta=False, weight_decay=False,
+                  graph_analyze=False):
 
         mbs = mini_batch_size
+        training_data_len = len(training_data)
 
-        sgd_start_time = os.times()[-1]
+        training_accuracy = []
+        training_cost = []
+        test_accuracy = []
+        test_cost = []
+        sgd_start_time = times()[-1]
         for e in range(epochs):
-            epoch_start_time = os.times()[-1]
+            epoch_start_time = times()[-1]
 
-            random.shuffle(train_data)
-            mini_batches = [mb for mb in train_data[0:len(train_data):mbs]]
+            random.shuffle(training_data)
+            mini_batches = [mb for mb in training_data[0:len(training_data):mbs]]
             for mb in mini_batches:
-                self.update_nn(mb, eta, mbs, d_eta=descending_eta)
-            print "Epoch time spent: {0}s".format(os.times()[-1]-epoch_start_time)
+                self.update_nn(mb, eta, mbs, lmbda, training_data_len,
+                               descending_eta, weight_decay)
+            print "Epoch time spent: {0}s".format(times()[-1]-epoch_start_time)
 
             if test_data:
                 print "test preciseness: {0}".format(self.eval_test(test_data))
 
-        print "SGD Training finished after {0} epochs. \nTotal time spent: {1}s.".format(epochs, os.times()[-1]-sgd_start_time)
+            #if graph_analyze
+
+        print "SGD Training finished after {0} epochs. \nTotal time spent: {1}s.".format(epochs, times()[-1]-sgd_start_time)
 
 
-    def update_nn(self, mini_batch, eta, mbs, d_eta=False):
-        if d_eta:
+    def update_nn(self, mini_batch, eta, mini_batch_size, lmbda, n, descending_eta=False, weight_decay=False):
+        mbs = mini_batch_size
+        if descending_eta:
             eta = eta/1+d
-
         input_layer_data = mini_batch[0]
         ildrst = self.rst_idx_vec(mini_batch[1])
         nws,nbs = self.backprop(input_layer_data, ildrst)
-        self.weights = [w-nw*(eta/mbs) for w, nw in zip(self.weights, nws)]
+        if weight_decay:
+            self.weights = [(1-lmbda*eta/n)*w-nw*(eta/mbs) for w, nw in zip(self.weights, nws)]
+        else:
+            self.weights = [w-nw*(eta/mbs) for w, nw in zip(self.weights, nws)]
         self.biases = [b-nb*(eta/mbs) for b, nb in zip(self.biases, nbs)]
 
     def backprop(self, data, rst):
         nws = [np.zeros(w.shape) for w in self.weights]
         nbs = [np.zeros(b.shape) for b in self.biases]
+        for i in self.weights:
+            print i.shape
+        for j in nws:
+            print j.shape
 
 
         activation = data
@@ -75,7 +110,9 @@ class NN(object):
             activation = sigmoid(z)
             activations.append(activation)
 
-        delta = cost_prime(rst, self.feedforward(data))*sigmoid_prime(zs[-1])
+        delta = (self.cost).delta(self.feedforward(data), rst, zs[-1])
+        #delta = cost_prime(rst, self.feedforward(data))*sigmoid_prime(zs[-1])
+        delta = self.feedforward(data)*sigmoid_prime(zs[-1])-rst
         nbs[-1] = delta
         #?---------ARRAY dot vs *---------?
         nws[-1] = np.dot(delta, activations[-2].transpose())
@@ -108,25 +145,32 @@ class NN(object):
         return rst
 
 
+"""
+Probably need a bunch of wrapper classes to wrap the following functions up
+"""
+
+def tanh(z):
+     return (np.exp(z)-np.exp(-z))/(np.exp(z)+np.exp(-z))
 
 def sigmoid(z):
     return 1.0/(1.0+np.exp(-z))
+def ReLU(z):
+    #^----------------^
+    return np.argmax(0, z)
 
 def sigmoid_prime(z):
     return sigmoid(z)*(1-np.exp(-z))
 
-def cost_prime(y, a):
-    return y-a
-
 
 
 def key(dic, val):
-    keys = dic.keys
-    values = dic.values
+    k=None
+    keys = dic.keys()
+    values = dic.values()
     for i in xrange(len(values)):
         if values[i] == val:
-            key = i
-    return key
+            k = i
+    return k
 
 
 

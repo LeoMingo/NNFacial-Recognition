@@ -89,11 +89,7 @@ class DataManip(object):
         return data
 
     def pkl_w(self, data, filename, dest_dir='./'):
-        if os.path.isdir(dest_dir) == True:
-            f = gzip.open(os.path.join(dest_dir,filename), 'wb')
-            cPickle.dump(data, f)
-            f.close()
-        else:
+        if os.path.isdir(dest_dir) != True:
             os.mkdir(dest_dir)
             f = gzip.open(os.path.join(dest_dir,filename), 'wb')
             cPickle.dump(data, f)
